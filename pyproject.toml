@@ -1,0 +1,23 @@
+[project]
+name = "BFS-Discord-Bot"
+version = "0.1.0"
+description = "Discord Bot made for the Ben's Fintastic Sharks Server"
+readme = "README.md"
+authors = [
+    { name = "JamesBCyber", email = "james@jamesbcyber.xyz" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "py-cord>=2.8.1",
+    "pydantic>=2.13.5",
+    "pydantic-settings>=2.15.0",
+    "rapidfuzz>=3.14.6",
+]
+
+[project.scripts]
+bfs-discord-bot = "bfs_discord_bot:main"
+test = "test:main"
+
+[build-system]
+requires = ["uv_build>=0.12.10,<0.13.0"]
+build-backend = "uv_build"
