@@ -1,4 +1,5 @@
 import discord
+import datetime
 
 
 class UserMessageCache:
@@ -53,15 +54,42 @@ class MessageContent:
     def __init__(self, message: discord.Message) -> None:
         self.original_message = message
 
+    @staticmethod
+    def cmp_raw_content(left: discord.Message, right: discord.Message) -> bool:
+        """Compare discord.Messages based on text content, file attachments, and timestamps"""
+        # Exclude check if the message has no files and is only 1 word
+        # helps with things like "yes" and "no" answers
+        if not left.attachments and len(left.content.split(" ")) <= 5:
+            return False
+
+        if not right.attachments and len(right.content.split(" ")) <= 5:
+            return False
+
+        # Avoid preserving messages that are too old as spam potential
+        if abs(right.created_at - left.created_at) > datetime.timedelta(minutes=5):
+            return False
+
+        # both files and text match
+        if left.attachments == right.attachments and left.content == right.content:
+            return True
+
+        # Check if files match with an empty message text in second message (re-uploding files)
+        if (
+            left.attachments == right.attachments
+            and not left.content
+            and not right.content
+        ):
+            return True
+
+        return False
+
     def __eq__(self, value: object) -> bool:
         if isinstance(value, MessageContent):
-            if self.original_message.attachments == value.original_message.attachments:
-                return True
-            return self.original_message.content == value.original_message.content
+            return MessageContent.cmp_raw_content(
+                self.original_message, value.original_message
+            )
 
         if isinstance(value, discord.Message):
-            if self.original_message.attachments == value.attachments:
-                return True
-            return self.original_message.content == value.content
+            return MessageContent.cmp_raw_content(self.original_message, value)
 
         return NotImplemented

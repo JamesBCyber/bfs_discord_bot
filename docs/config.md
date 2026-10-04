@@ -1,2 +1,2 @@
 # Config
-This file reads from a .env file and exposes it in a type safe manner 
+Use the .env file to read the Discord Bot Token and API keys for fetching media service updates

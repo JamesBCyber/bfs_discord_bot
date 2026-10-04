@@ -1,9 +1,16 @@
-# Event Triggers
-Discord Bot Events are set in the Bot subclass within bot.py
+# Events
+Located in the Bot subclass inside bot.py
 
-Set the methods for the events or build out extra functionality for the ones that exist
-- on_ready 
-- on_message
-- on_member_join
-- on_member_remove
+## On Ready
+Ensure Guild Commands are setup and synced properly
+
+
+## On Member Join
+Picks a random template from the guilds template settings
+
+## On Member Remove
+Picks a random template from the guilds template settings
+
+## On Member Ban
+Picks a random template from the guilds template settings
 

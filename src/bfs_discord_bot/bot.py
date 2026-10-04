@@ -1,7 +1,8 @@
 import discord
 from discord import Member, Message
 from .views.persistant_views import TestView
-from .db.memory import UserMessageCache
+from .modules.spam.user_cache import UserMessageCache
+from .db.media_tracker import SocialMediaTracker
 import datetime
 
 
@@ -9,6 +10,7 @@ class Bot(discord.Bot):
     """Discord Bot used for Events"""
 
     message_cache = UserMessageCache()
+    media_tracker = SocialMediaTracker()
 
     async def on_ready(self):
         print("Logged in as")

@@ -1,11 +1,11 @@
 import os
-import pickle
+import json
 
 
-class PickleDatabase:
-    """Pickle database with Copy-on-Write / Write through Cache to handle persistant data with fast query times"""
+class JsonDatabase:
+    """json database with Copy-on-Write / Write through Cache to handle persistant data with fast query times"""
 
-    def __init__(self, filepath: str = "database.pkl") -> None:
+    def __init__(self, filepath: str = "database.json") -> None:
         self.filepath = filepath
         self._data = {}
         self._load()
@@ -14,16 +14,22 @@ class PickleDatabase:
         """Read from file on init if the file exists"""
         if os.path.exists(self.filepath):
             try:
-                with open(self.filepath, "rb") as f:
-                    self._data = pickle.load(f)
-            except EOFError, pickle.UnpicklingError:
+                with open(self.filepath, "r") as f:
+                    self._data = json.load(f)
+            except EOFError:
                 # Handle corrupted or empty files gracefully
                 self._data = {}
 
     def _write_to_disk(self):
         """Write current database to file"""
-        with open(self.filepath, "wb") as f:
-            pickle.dump(self._data, f)
+        with open(self.filepath, "w") as f:
+            json.dump(self._data, f)
+
+    def get_create(self, key, default):
+        v = self.get(key, None)
+        if v == None:
+            self.set(key, default)
+            return default
 
     def get(self, key, default=None):
         return self._data.get(key, default)
@@ -44,4 +50,4 @@ class PickleDatabase:
             self._write_to_disk()
 
     def __delitem__(self, key):
-        self.delete(key)
+

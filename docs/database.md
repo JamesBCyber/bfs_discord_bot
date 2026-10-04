@@ -17,3 +17,7 @@ Below is a basic use of the cache for checking if a message is being spammed
 
 ```
 
+
+
+# Disk Storage
+
