@@ -50,4 +50,4 @@ class JsonDatabase:
             self._write_to_disk()
 
     def __delitem__(self, key):
-
+        self.delete(key)

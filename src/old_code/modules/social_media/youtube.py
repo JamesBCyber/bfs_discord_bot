@@ -1,6 +1,6 @@
 from .media_impl import SocialMedia
 from googleapiclient.discovery import build
-from ..config import settings
+from ...config import settings
 
 BUILD_YOUTUBE = "youtube"
 BUILD_VERSION = "v3"

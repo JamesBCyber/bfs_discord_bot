@@ -15,8 +15,11 @@ class SocialMediaTracker:
 
     youtube_channels: set[YoutubeMedia]
 
-    def __init__(self, youtube_channels: set[YoutubeMedia]) -> None:
-        self.youtube_channels = youtube_channels
+    def __init__(self, youtube_channels=None) -> None:
+        if youtube_channels is None:
+            self.youtube_channels = set()
+        else:
+            self.youtube_channels = youtube_channels
 
     def to_dict(self) -> dict:
         return {YoutubeMedia: list(self.youtube_channels)}
@@ -31,7 +34,6 @@ class SocialMediaTracker:
     def add_channel(self, type: SocialMediaTracker):
         pass
 
-    def _add_youtube(self, )
 
 class SocialMediaType(Enum):
     Youtube = 1
