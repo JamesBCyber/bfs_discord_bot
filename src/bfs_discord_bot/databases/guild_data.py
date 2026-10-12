@@ -1,79 +1,80 @@
-import discord
+import asyncio
 import json
 from typing import Any
 
+import discord
+
+from .channels import ChannelData
+from .roles import RoleData
+from .wrapper import save_method
+
+DEFAULT_JSON_FILENAME = "guilds.json"
+
 
 class GuildData:
-    GUILD_ID = "guild_id"  # int
-    CHANNEL_LOG = "channel_log"  # int
-    CHANNEL_MEDIA = "channel_media"  # int
-    CHANNEL_COMMANDS = "channel_commands"  # int
-    """
-    ```json
-    {
-        "guild_id": int
-        "channel_log": int,
-        "channel_media": int,
-        "channel_commands": int,
-    }
-    ```
-    """
+    """Internal Guild Data, Refer to ChannelData and RoleData for accessing relevant data"""
 
+    GUILD_ID_KEY = "guild_id"  # int
+
+    _root: Guilds
     guild: discord.Guild
-    id: int
-    channel_log: discord.TextChannel | None
-    channel_media: discord.TextChannel | None
-    channel_commands: discord.TextChannel | None
+    channels: ChannelData
+    roles: RoleData
+
+    def __str__(self) -> str:
+        return (
+            f"Guild:{self.guild.name}\nID:{self.guild.id}"
+            "\n" + str(self.channels) + "\n" + str(self.roles)
+        )
 
     def __init__(
         self,
-        guild: discord.Guild | None = None,
-        guild_id: int | None = None,
-        channel_log: discord.TextChannel | None = None,
-        channel_media: discord.TextChannel | None = None,
-        channel_commands: discord.TextChannel | None = None,
+        root: Guilds,
+        guild: discord.Guild,
+        channels: ChannelData,
+        roles: RoleData,
     ) -> None:
-        pass
+        self._root = root
+        self.guild = guild
+        self.channels = channels
+        self.roles = roles
 
     def to_dict(self) -> dict[str, Any]:
-        data = {self.GUILD_ID: self.guild.id}
-
-        if self.channel_log:
-            data[self.CHANNEL_LOG] = self.channel_log.id
-
-        if self.channel_media:
-            data[self.CHANNEL_MEDIA] = self.channel_media.id
-
-        if self.channel_commands:
-            data[self.CHANNEL_COMMANDS] = self.channel_commands.id
-
+        data: dict[str, Any] = {}
+        data[self.GUILD_ID_KEY] = self.guild.id
+        data[self.channels.KEY] = self.channels.to_dict()
+        data[self.roles.KEY] = self.roles.to_dict()
         return data
 
     @classmethod
     async def from_json(
-        cls, guild: discord.Guild, data: dict[str, int], string: str | None = None
+        cls,
+        root: Guilds,
+        bot: discord.Bot,
+        data: dict[str, Any] | None = None,
+        string: str | None = None,
     ) -> GuildData:
         if string:
             data = json.loads(string)
 
-        log = None
-        if log_id := data.get(cls.CHANNEL_LOG):
-            log = await guild.fetch_channel(log_id)
+        # Expect at either data or string, if neither, error
+        if data is None:
+            raise ValueError
 
-        media = None
-        if media_id := data.get(cls.CHANNEL_MEDIA):
-            media = await guild.fetch_channel(media_id)
+        guild = await bot.fetch_guild(data[cls.GUILD_ID_KEY])
 
-        commands = None
-        if commands_id := data.get(cls.CHANNEL_COMMANDS):
-            commands = await guild.fetch_channel(commands_id)
+        channel_data = await ChannelData.from_json(
+            root=root, guild=guild, data=data[ChannelData.KEY]
+        )
+        role_data = await RoleData.from_json(
+            root=root, guild=guild, data=data[RoleData.KEY]
+        )
 
         guild_data = cls(
+            root=root,
             guild=guild,
-            guild_id=guild.id,
-            channel_log=log,
-            channel_media=media,
-            channel_commands=commands,
+            channels=channel_data,
+            roles=role_data,
         )
         return guild_data
 
@@ -84,27 +85,45 @@ class Guilds:
     Data is stored in a json file with id's and on class.load() fetches all data needed
     """
 
-    _filename: str
-    _guilds: dict[discord.Guild, GuildData]
+    filename: str
+    guilds: dict[discord.Guild, GuildData]
 
-    def __init__(self, filename: str = "guilds.json") -> None:
+    def __init__(self, filename: str = DEFAULT_JSON_FILENAME) -> None:
         self.filename = filename
+        self.guilds = {}
 
-    def _save(self) -> None:
-        pass
+    def __getitem__(self, value: discord.Guild) -> GuildData:
+        return self.guilds.get(value)
+
+    def save(self) -> None:
+        data = {}
+        for k, v in self.guilds.items():
+            data[k.id] = v.to_dict()
+        with open(self.filename, "w") as f:
+            json.dump(data, f)
 
     @classmethod
-    async def load(cls, bot: discord.Bot, filename: str = "guilds.json") -> Guilds:
+    async def load(
+        cls, bot: discord.Bot, filename: str = DEFAULT_JSON_FILENAME
+    ) -> Guilds:
         guilds = cls(filename=filename)
 
         with open(filename) as f:
             data = json.load(f)
 
-        for key in data:
-            guild = await bot.fetch_guild(key)
-            gd = GuildData.from_json(guild=guild, data=data[key])
+        guild_values, guild_datas = await asyncio.gather(
+            asyncio.gather(*[bot.fetch_guild(key) for key in data]),
+            asyncio.gather(
+                *[
+                    GuildData.from_json(root=guilds, bot=bot, data=data[key])
+                    for key in data
+                ]
+            ),
+        )
+        for guild, data in zip(guild_values, guild_datas):
+            guilds.add_entry(guild, data)
 
         return guilds
 
     def add_entry(self, guild: discord.Guild, guild_data: GuildData):
-        self._guilds[guild] = guild_data
+        self.guilds[guild] = guild_data
